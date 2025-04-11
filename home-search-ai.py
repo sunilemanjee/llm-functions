@@ -16,16 +16,18 @@ import httpx
 
 st.title("🏡 Find a Home")
 
-st.sidebar.header("🔒 Sensitive Settings")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+ELASTIC_SERVERLESS_CLOUD_ID = os.getenv("ELASTIC_SERVERLESS_CLOUD_ID")
+ELASTIC_SERVERLESS_API_KEY = os.getenv("ELASTIC_SERVERLESS_API_KEY")
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+GEOCODE_URL = os.getenv("GEOCODE_URL")
+AZURE_API_KEY = os.getenv("AZURE_API_KEY")
+AZURE_DEPLOYMENT_NAME = os.getenv("AZURE_DEPLOYMENT_NAME")
+AZURE_API_VERSION = os.getenv("AZURE_API_VERSION")
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 
-ELASTIC_CLOUD_ID = st.sidebar.text_input("Elastic Serverless CloudID", value="")
-ELASTIC_API_KEY = st.sidebar.text_input("Elastic Serverless API Key", type="password", value = "")
-GEOCODE_URL = st.sidebar.text_input("Google Maps Endpoint", value = "https://maps.googleapis.com/maps/api/geocode/json")
-GOOGLE_MAPS_API_KEY = st.sidebar.text_input("Google Maps API Key", type="password", value = "")
-AZURE_API_KEY = st.sidebar.text_input("Azure OpenAI Key", type="password", value = "")
-deployment_name = st.sidebar.text_input("Azure Deployment Name", value = "gpt-4o-global")
-API_VERSION = st.sidebar.text_input("Azure API Version", value = "2024-05-01-preview")
-ENDPOINT = st.sidebar.text_input("Azure Endpoint", type="password", value = "")
+
+
 TEMPLATE_ID="properties-search-template"
 INDEX_NAME="properties"
 MAX_RETRIES = 2
@@ -34,14 +36,14 @@ RETRY_DELAY = 2  # seconds between retries
 
 try:
     client = AzureOpenAI(
-        azure_endpoint=ENDPOINT,
+        azure_endpoint=AZURE_OPENAI_ENDPOINT,
         api_key=AZURE_API_KEY,
-        api_version=API_VERSION
+        api_version=AZURE_API_VERSION
     )
 
     es = Elasticsearch(
-        cloud_id=ELASTIC_CLOUD_ID,
-        api_key=ELASTIC_API_KEY,
+        cloud_id=ELASTIC_SERVERLESS_CLOUD_ID,
+        api_key=ELASTIC_SERVERLESS_API_KEY,
         request_timeout=300
     )
 
@@ -54,13 +56,13 @@ except:
 
 
 def setElasticClient():
-  es = Elasticsearch(cloud_id=ELASTIC_CLOUD_ID, api_key=ELASTIC_API_KEY, request_timeout=300)
+  es = Elasticsearch(cloud_id=ELASTIC_SERVERLESS_CLOUD_ID, api_key=ELASTIC_SERVERLESS_API_KEY, request_timeout=300)
   es.info()
 
 
 
 def setAzureClient():
-  client = AzureOpenAI(azure_endpoint=ENDPOINT, api_key=AZURE_API_KEY, api_version=API_VERSION)
+  client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT, api_key=AZURE_API_KEY, api_version=AZURE_API_VERSION)
 
 
 
@@ -220,7 +222,7 @@ def find_a_home(content):
         # Call the LLM with tools
         try:
             response = client.chat.completions.create(
-                model=deployment_name,
+                model=AZURE_DEPLOYMENT_NAME,
                 messages=messages,
                 tools=tools,
                 tool_choice="auto",
