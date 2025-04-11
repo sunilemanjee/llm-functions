@@ -3,38 +3,54 @@ import json
 import re
 import os
 import json
-from openai import AzureOpenAI
+import time
+from openai import AzureOpenAI, APIConnectionError, Timeout, OpenAIError
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from elasticsearch import Elasticsearch, helpers, NotFoundError
+from elasticsearch import Elasticsearch, helpers, NotFoundError, TransportError, AuthenticationException
 from elasticsearch.helpers import scan, bulk
 import requests
 import requests, json
-#from corcoran_demo import find_a_home
+import httpx
+
 
 st.title("🏡 Find a Home")
 
 st.sidebar.header("🔒 Sensitive Settings")
 
-ELASTIC_CLOUD_ID = st.sidebar.text_input("ESS CloudID", type="password", value="")
-ELASTIC_API_KEY = st.sidebar.text_input("API Key", type="password", value = "")
-INDEX_NAME = st.sidebar.text_input("Access Token", type="password", value = "properties")
-GEOCODE_URL = st.sidebar.text_input("Google Maps Endpoint", type="password", value = "https://maps.googleapis.com/maps/api/geocode/json")
+ELASTIC_CLOUD_ID = st.sidebar.text_input("Elastic Serverless CloudID", value="")
+ELASTIC_API_KEY = st.sidebar.text_input("Elastic Serverless API Key", type="password", value = "")
+GEOCODE_URL = st.sidebar.text_input("Google Maps Endpoint", value = "https://maps.googleapis.com/maps/api/geocode/json")
 GOOGLE_MAPS_API_KEY = st.sidebar.text_input("Google Maps API Key", type="password", value = "")
 AZURE_API_KEY = st.sidebar.text_input("Azure OpenAI Key", type="password", value = "")
-deployment_name = st.sidebar.text_input("Azure Deployment Name", type="password", value = "gpt-4o-global")
-API_VERSION = st.sidebar.text_input("Azure API Version", type="password", value = "2024-05-01-preview")
+deployment_name = st.sidebar.text_input("Azure Deployment Name", value = "gpt-4o-global")
+API_VERSION = st.sidebar.text_input("Azure API Version", value = "2024-05-01-preview")
 ENDPOINT = st.sidebar.text_input("Azure Endpoint", type="password", value = "")
 TEMPLATE_ID="properties-search-template"
+INDEX_NAME="properties"
+MAX_RETRIES = 2
+RETRY_DELAY = 2  # seconds between retries
 
 
+try:
+    client = AzureOpenAI(
+        azure_endpoint=ENDPOINT,
+        api_key=AZURE_API_KEY,
+        api_version=API_VERSION
+    )
+
+    es = Elasticsearch(
+        cloud_id=ELASTIC_CLOUD_ID,
+        api_key=ELASTIC_API_KEY,
+        request_timeout=300
+    )
+
+    es.info()
+
+except:
+    pass  # Silently ignore all errors
 
 
-client = AzureOpenAI(azure_endpoint=ENDPOINT, api_key=AZURE_API_KEY, api_version=API_VERSION)
-
-es = Elasticsearch(cloud_id=ELASTIC_CLOUD_ID, api_key=ELASTIC_API_KEY, request_timeout=300)
-
-print(es.info())
 
 
 def setElasticClient():
@@ -202,12 +218,25 @@ def find_a_home(content):
     parameters = {}
     while True:
         # Call the LLM with tools
-        response = client.chat.completions.create(
-            model=deployment_name,
-            messages=messages,
-            tools=tools,
-            tool_choice="auto",
-        )
+        try:
+            response = client.chat.completions.create(
+                model=deployment_name,
+                messages=messages,
+                tools=tools,
+                tool_choice="auto",
+            )
+
+        except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.ConnectError) as conn_err:
+            print(f"⚠️ Connection error occurred: {conn_err}")
+            raise ConnectionError
+
+        except httpx.HTTPStatusError as http_err:
+            print(f"❌ HTTP error (status {http_err.response.status_code}): {http_err}")
+            raise ConnectionError
+
+        except Exception as e:
+            print(f"❌ Unexpected error: check your Azure OpenAI configuration. {e}")
+            raise ConnectionError
 
         response_message = response.choices[0].message
         messages.append(response_message)
@@ -378,8 +407,23 @@ def call_elasticsearch(
         print(json.dumps(query_body, indent=2))
 
         # Call Elasticsearch
-        response = es.search_template(index=INDEX_NAME, body=query_body)
-        print("Elasticsearch query successful.")
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                response = es.search_template(index=INDEX_NAME, body=query_body)
+                print("Elasticsearch query successful.")
+                break  # Exit the loop on success
+            except AuthenticationException as e:
+                # Handle 401 Unauthorized
+                print("❌ Authentication failed: missing or invalid credentials.")
+                break  # Do not retry on auth errors
+            except TransportError as e:
+                if e.status_code == 408:
+                    if attempt < MAX_RETRIES:
+                        time.sleep(RETRY_DELAY)
+                    else:
+                        raise  # Raise after final retry
+                else:
+                    raise  # Raise unexpected errors
 
         # Convert response to a JSON-serializable dictionary
         response_body = response.body
@@ -389,6 +433,7 @@ def call_elasticsearch(
         print(f"Number of results found: {total_results}")
 
         return response_body
+    
     except Exception as e:
         print(f"Error while querying Elasticsearch: {e}")
         return {"error": str(e)}
