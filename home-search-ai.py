@@ -21,11 +21,17 @@ ELASTIC_SERVERLESS_CLOUD_ID = os.getenv("ELASTIC_SERVERLESS_CLOUD_ID")
 ELASTIC_SERVERLESS_API_KEY = os.getenv("ELASTIC_SERVERLESS_API_KEY")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 GEOCODE_URL = os.getenv("GEOCODE_URL")
-AZURE_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
-AZURE_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 
-
+print(AZURE_OPENAI_API_KEY)
+print(ELASTIC_SERVERLESS_CLOUD_ID)
+print(ELASTIC_SERVERLESS_API_KEY)
+print(GOOGLE_MAPS_API_KEY)
+print(AZURE_OPENAI_DEPLOYMENT_NAME)
+print(AZURE_OPENAI_API_VERSION)
+print(AZURE_OPENAI_ENDPOINT)
 
 TEMPLATE_ID="properties-search-template"
 INDEX_NAME="properties"
@@ -61,7 +67,7 @@ def setElasticClient():
 
 
 def setAzureClient():
-  client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT, api_key=AZURE_OPENAI_API_KEY, api_version=AZURE_API_VERSION)
+  client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT, api_key=AZURE_OPENAI_API_KEY, api_version=AZURE_OPENAI_API_VERSION)
 
 
 
@@ -221,7 +227,7 @@ def find_a_home(content):
         # Call the LLM with tools
         try:
             response = client.chat.completions.create(
-                model=AZURE_DEPLOYMENT_NAME,
+                model=AZURE_OPENAI_DEPLOYMENT_NAME,
                 messages=messages,
                 tools=tools,
                 tool_choice="auto",
