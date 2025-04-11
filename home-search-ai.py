@@ -417,20 +417,20 @@ def call_elasticsearch(
         for attempt in range(MAX_RETRIES + 1):
             try:
                 response = es.search_template(index=INDEX_NAME, body=query_body)
-                print("Elasticsearch query successful.")
-                break  # Exit the loop on success
-            except AuthenticationException as e:
-                # Handle 401 Unauthorized
+                print("✅ Elasticsearch query successful.")
+                break  # Success
+            except AuthenticationException:
                 print("❌ Authentication failed: missing or invalid credentials.")
-                break  # Do not retry on auth errors
+                break  # Don't retry on auth error
             except TransportError as e:
-                if e.status_code == 408:
+                if e.status_code == 408 and "Starting deployment timed out" in str(e.info):
+                    print(f"⚠️ Model not ready yet (attempt {attempt+1}/{MAX_RETRIES}). Retrying after delay...")
                     if attempt < MAX_RETRIES:
                         time.sleep(RETRY_DELAY)
                     else:
-                        raise  # Raise after final retry
+                        raise RuntimeError("Model deployment failed to start in time.") from e
                 else:
-                    raise  # Raise unexpected errors
+                    raise  # Raise unexpected TransportError
 
         # Convert response to a JSON-serializable dictionary
         response_body = response.body
@@ -471,12 +471,6 @@ def geocode_location(location):
             return json.dumps({"latitude": result["lat"], "longitude": result["lng"]})
     return json.dumps({"error": "Geocoding failed"})
 
-
-
-# Sidebar - Button
-if st.sidebar.button("Set Variables"):
-    setElasticClient()
-    setAzureClient()
 
 
 query = st.text_area(
