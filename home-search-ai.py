@@ -36,7 +36,7 @@ RETRY_DELAY = 2  # seconds between retries
 try:
     client = AzureOpenAI(
         azure_endpoint=AZURE_OPENAI_ENDPOINT,
-        api_key=AZURE_API_KEY,
+        api_key=AZURE_OPENAI_API_KEY,
         api_version=AZURE_API_VERSION
     )
 
@@ -61,7 +61,7 @@ def setElasticClient():
 
 
 def setAzureClient():
-  client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT, api_key=AZURE_API_KEY, api_version=AZURE_API_VERSION)
+  client = AzureOpenAI(azure_endpoint=AZURE_OPENAI_ENDPOINT, api_key=AZURE_OPENAI_API_KEY, api_version=AZURE_API_VERSION)
 
 
 
