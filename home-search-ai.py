@@ -139,7 +139,7 @@ def find_a_home(content):
                         },
                         "feature": {
                             "type": "string",
-                            "description": "home features, amenities, or descriptive terms (e.g., 2 car garage, pool, gym, modern, luxurious). This can include multiple options.",
+                            "description": "home features, amenities, or descriptive terms (e.g., 2 car garage, pool, gym, modern, luxurious). This can include multiple options.  Each feature option must be enclosed with *.  For example pool and updated kitchen should be formated to *pool*updated kitchen* . Single features such as pool shoudl be encapusalted with *pool*",
                         },
                     },
                     "required": ["query", "feature"],
@@ -540,13 +540,4 @@ if query:
 
     except Exception as e:
         st.error(f"Something went wrong: {e}")
-
-
-
-
-
-
-
-
-
 
