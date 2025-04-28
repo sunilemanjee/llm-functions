@@ -119,11 +119,11 @@ def find_a_home(content):
                         },
                         "tax": {
                             "type": "number",
-                            "description": "Tax amount.  Convert text representation of numbers into numeric",
+                            "description": "Tax amount.  Convert text representation of numbers into numeric without $ or commas. If the query supplies $10,000 then parse it as 10000",
                         },
                        "maintenance": {
                             "type": "number",
-                            "description": "maintenance fees or HOA fees.  Convert text representation of numbers into numeric",
+                            "description": "maintenance fees or HOA fees.  Convert text representation of numbers into numeric without $ or commas. If the query supplies $1000 then parse it as 1000",
                         },
                         "location": {
                             "type": "string",
@@ -131,11 +131,11 @@ def find_a_home(content):
                         },
                         "square_footage": {
                             "type": "number",
-                            "description": "Sqaure footage of home (e.g., 1200, 15000)",
+                            "description": "Sqaure footage of home (e.g., 1200, 15000). No commas just the number. If the query supplies 5,000 then parse it as 5000",
                         },
                         "home_price": {
                             "type": "number",
-                            "description": "The price of the home for sale",
+                            "description": "The price of the home for sale without $ or commas. If the query supplies $100,000 then parse it as 100000",
                         },
                         "feature": {
                             "type": "string",
